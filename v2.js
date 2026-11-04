@@ -115,7 +115,7 @@ function side(expanded) {
     // v9: dzień jest bohaterem (tydzień → podsumowanie → rozmowy), statystyki to mały, drugorzędny blok obok/nad.
     const wk = `<div class="dweek"><div class="dweek-h"><span>${S.month ? 'Październik 2026' : 'Ten tydzień'}</span><button data-act="month">${S.month ? 'Zwiń' : 'Cały miesiąc'}<span style="display:flex;${S.month ? 'transform:rotate(180deg)' : ''}">${ic('cd',14,2)}</span></button></div>${S.month ? month() : week()}</div>`;
     // v14: „Twoje serie” i „Ty i Freeday” jak na mobile — pod przełącznikiem, nad kalendarzem.
-    const dcards = `<div class="dcards"><div class="dcard"><div class="gh"><span>Twoje serie</span></div>${tiles()}</div><div class="dcard"><div class="gh"><span>Ty i Freeday</span></div>${nums()}</div></div>`;
+    const dcards = `<div class="dcards">${tiles()}${nums()}</div>`; // v15: bez nagłówków i kontenerów
     return `<div class="pv">${seg}<div class="bento"><div class="bmain">${dcards}${wk}${dayDetail()}${convRows()}</div></div></div>`;
   }
   return `<div class="stack">${data}<div><div class="gh"><span>Podsumowanie dnia</span></div>${cal}</div>${convRows()}${dayDetail()}</div>`;
