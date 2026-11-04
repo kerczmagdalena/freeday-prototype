@@ -329,3 +329,11 @@ body.native .sw.closed .tgl{padding:6px 9px;font-size:11.5px}
 /* mobile „Twój dzień”: brak wspólnego panelu – karty same są białe, obrys w tej samej pochodnej granatu */
 .phone .card,.phone .group{background:#FFFFFF;border-color:rgba(0,36,63,.07)}
 .phone .row+.row{border-top-color:rgba(0,36,63,.06)}
+
+/* v14 — karty serii i „Ty i Freeday” nad kalendarzem (spójnie z mobile) */
+.d-side .bento{grid-template-columns:minmax(0,520px)}
+.dcards{display:flex;flex-direction:column;gap:10px;max-width:520px}
+.dcard{background:#FAFBFC;border:1px solid rgba(0,36,63,.065);border-radius:16px;padding:12px 12px 12px}
+.dcard .tile{background:#fff;border:1px solid rgba(0,36,63,.06)}
+.dcard .tile.o{background:var(--orange-tint);border-color:transparent}
+.dcard .nums{margin:0 2px}
