@@ -75,14 +75,39 @@ function question(size) {
 const presets = () => started() ? '' : `<div class="presets">${opening().p.map((p) => `<button class="preset" data-act="preset" data-v="${esc(p)}">${ic('arrow',15,1.8)}<span>${p}</span></button>`).join('')}</div>`;
 // Oczekiwanie na odpowiedź: małe „słoneczko” Freeday, którego promienie łagodnie wschodzą falą + szary, migoczący podpis.
 const THINK_SUN = `<svg class="think-sun" viewBox="0 0 24 14" aria-hidden="true"><defs><clipPath id="fd-sky"><rect x="-4" y="-6" width="32" height="17.9"/></clipPath></defs><g clip-path="url(#fd-sky)"><g class="sun">${[[-60, 2], [-30, 1], [0, 0], [30, 1], [60, 2]].map(([a, k]) => `<g transform="translate(12 11.8) rotate(${a})"><rect class="ray r${k}" x="-1.2" y="-10.8" width="2.4" height="10.8" rx=".5"/></g>`).join('')}<path class="core" d="M7.4 11.9A4.6 4.6 0 0 1 16.6 11.9Z"/></g></g><rect class="hz" x="0.5" y="11.5" width="23" height="2.5" rx=".6"/></svg>`; // v12: wschód słońca — horyzont → słońce wschodzi → promienie → oddech → zachód
-const msgBody = (m) => m.r === 'a' && m.typing ? `${THINK_SUN}<span class="tt">${esc(m.t)}</span>` : esc(m.t);
+// v17: pytanie agenta zawsze w osobnym wierszu, z odstępem od wypowiedzi wstępnej.
+function splitAsk(t) {
+  const i = t.lastIndexOf('?');
+  if (i < 0) return null;
+  let start = 0;
+  for (let j = i - 1; j >= 0; j--) {
+    if ('.!?'.includes(t[j])) {
+      start = j + 1;
+      while (start < i && /\s/.test(t[start])) start++;
+      break;
+    }
+  }
+  const body = t.slice(0, start).trimEnd();
+  const ask = t.slice(start, i + 1).trim();
+  const rest = t.slice(i + 1).trim();
+  if (!body && !rest) return null; // samo pytanie — bez dodatkowego bloku
+  return { body, ask, rest };
+}
+const agentHtml = (t) => {
+  const s = splitAsk(t);
+  if (!s) return esc(t);
+  // pytanie zawsze na końcu, wydzielone; ewentualny tekst po „?” wraca do wypowiedzi wstępnej
+  const body = [s.body, s.rest].filter(Boolean).join(s.body && s.rest ? ' ' : '');
+  return `${body ? `<div class="abody">${esc(body)}</div>` : ''}<div class="aq">${esc(s.ask)}</div>`;
+};
+const msgBody = (m) => m.r === 'a' && m.typing ? `${THINK_SUN}<span class="tt">${esc(m.t)}</span>` : m.r === 'a' ? agentHtml(m.t) : esc(m.t);
 const msgs = () => started() ? `<div class="msgs">${S.msgs.map((m) => `<div${m.r === 'u' ? ' data-u' : ''}${m.r === 'a' && !m.done ? ' id="stream"' : ''}${m.typing ? ' role="status" aria-live="polite"' : ''} class="${m.r === 'u' ? 'bu' : 'ba'}${m.typing ? ' thinking' : ''} fadein">${msgBody(m)}</div>`).join('')}</div>` : '';
 // Wątek = oś czasu: kropka wcześniej (ciągłość) → pomarańczowy znak „teraz” (pytanie) → odpowiedzi
 function thread(size, withEarlier = !started()) {
   return `<div class="thread">${withEarlier ? `<div class="ti"><div class="rail"><span class="dot"></span><span class="ln"></span></div><div>${earlier()}</div></div>` : ''}
   <div class="ti now"><div class="rail"><span class="dot">${sign(16)}</span></div><div>${question(size).replace(/<div class="who">[\s\S]*?<\/div>/, `<div class="who"><b>Freeday</b><span>· teraz</span></div>`)}${msgs()}</div></div></div>`;
 }
-const transcript = () => `<div class="tr">${D.transcript.map(([r, t]) => `<div class="${r === 'u' ? 'bu' : 'ba'}">${t}</div>`).join('')}</div>`;
+const transcript = () => `<div class="tr">${D.transcript.map(([r, t]) => `<div class="${r === 'u' ? 'bu' : 'ba'}">${r === 'a' ? agentHtml(t) : t}</div>`).join('')}</div>`;
 const sumhead = () => `<div class="sumhead"><div class="sumbox${S.sumMin ? ' min' : ''}"><div class="top"><span class="lab">W skrócie</span><button class="tg" data-act="summin">${S.sumMin ? 'Rozwiń' : 'Zwiń'} <span style="display:flex;${S.sumMin ? '' : 'transform:rotate(180deg)'}">${ic('cd',14,2)}</span></button></div><p>${D.summary}</p>${S.sumMin ? '' : CHIPS}</div></div>`;
 
 // ---------- day panel / side column ----------
@@ -237,7 +262,7 @@ function streamReply(a, full) {
       } else {
         a.done = true;
         const e1 = el; if (e1) e1.removeAttribute('id'); // kolejna odpowiedź dostanie własny #stream
-        setTimeout(() => { if (e1 && e1.isConnected) e1.textContent = a.t; }, 520);
+        setTimeout(() => { if (e1 && e1.isConnected) e1.innerHTML = agentHtml(a.t); }, 520);
         const b = document.querySelector('.tobottom'); s2 && b && b.classList.toggle('show', !atBottom(s2));
       }
     };
