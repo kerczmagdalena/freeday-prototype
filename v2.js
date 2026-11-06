@@ -242,27 +242,51 @@ function streamReply(a, full) {
   }, 1500);
   setTimeout(() => {
     clearTimeout(swapT);
-    const words = full.match(/\S+\s*/g) || [full]; let i = 0;
+    // v18: od razu układ .abody + .aq (jak po końcu), słowa lecą do właściwego kontenera — bez skoku layoutu
+    const s = splitAsk(full);
+    const body = s ? [s.body, s.rest].filter(Boolean).join(s.body && s.rest ? ' ' : '') : '';
+    const ask = s ? s.ask : '';
+    const split = !!(s && body);
+    const segments = split
+      ? [{ cls: 'abody', text: body }, { cls: 'aq', text: ask }]
+      : [{ cls: null, text: full }];
+    const words = [];
+    for (const seg of segments) {
+      const ws = seg.text.match(/\S+\s*/g) || (seg.text ? [seg.text] : []);
+      for (const w of ws) words.push({ w, cls: seg.cls });
+    }
+    let i = 0;
     a.typing = false; a.t = '';
-    let el = document.getElementById('stream');
-    if (el) { el.classList.remove('thinking', 'fadein'); el.removeAttribute('role'); el.textContent = ''; }
+    const ensure = (el) => {
+      if (!el) return null;
+      el.classList.remove('thinking', 'fadein');
+      el.removeAttribute('role');
+      if (split) {
+        if (!el.querySelector('.abody') || !el.querySelector('.aq')) el.innerHTML = '<div class="abody"></div><div class="aq"></div>';
+      } else if (el.querySelector('.tt')) el.textContent = '';
+      return el;
+    };
+    ensure(document.getElementById('stream'));
     const tick = () => {
       const n = Math.min(words.length - i, Math.random() < 0.5 ? 1 : Math.random() < 0.7 ? 2 : 3);
-      const chunk = words.slice(i, i + n); i += n; a.t += chunk.join('');
-      el = document.getElementById('stream');
+      const chunk = words.slice(i, i + n); i += n;
+      a.t += chunk.map((x) => x.w).join('');
+      const el = ensure(document.getElementById('stream'));
       if (el) {
-        if (el.querySelector('.tt')) el.textContent = ''; // gdy coś przerysowało widok w trakcie
-        if (el.children.length === 0 && el.textContent) el.textContent = a.t.slice(0, a.t.length - chunk.join('').length);
-        for (const w of chunk) { const sp = document.createElement('span'); sp.className = 'w'; sp.textContent = w; el.appendChild(sp); }
+        for (const { w, cls } of chunk) {
+          const target = cls ? el.querySelector('.' + cls) : el;
+          if (!target) continue;
+          const sp = document.createElement('span'); sp.className = 'w'; sp.textContent = w; target.appendChild(sp);
+        }
       }
       const s2 = follow();
       if (i < words.length) {
-        const last = chunk[chunk.length - 1].trim();
+        const last = chunk[chunk.length - 1].w.trim();
         setTimeout(tick, n * rnd(30, 60) + (/[.?!:]$/.test(last) ? rnd(120, 220) : /[,;—–]$/.test(last) ? rnd(50, 110) : 0));
       } else {
-        a.done = true;
-        const e1 = el; if (e1) e1.removeAttribute('id'); // kolejna odpowiedź dostanie własny #stream
-        setTimeout(() => { if (e1 && e1.isConnected) e1.innerHTML = agentHtml(a.t); }, 520);
+        a.done = true; a.t = full;
+        const e1 = el; if (e1) e1.removeAttribute('id');
+        setTimeout(() => { if (e1 && e1.isConnected) e1.innerHTML = agentHtml(full); }, 520);
         const b = document.querySelector('.tobottom'); s2 && b && b.classList.toggle('show', !atBottom(s2));
       }
     };

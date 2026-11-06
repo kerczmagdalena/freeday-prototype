@@ -350,3 +350,5 @@ body.native .sw.closed .tgl{padding:6px 9px;font-size:11.5px}
 /* v17 — pytanie agenta w osobnym wierszu */
 .ba .aq{display:block;margin-top:18px}
 .ba .abody{display:block}
+
+/* v18 — stream pisze od razu do .abody / .aq (bez skoku na końcu) */
